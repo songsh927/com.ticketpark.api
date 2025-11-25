@@ -1,0 +1,138 @@
+/* 기본 스타일 초기화 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    color: white; /* 텍스트 색상 기본 흰색 */
+}
+
+body {
+    background-color: #141414; /* 넷플릭스 배경색 */
+}
+
+/* === 1. 헤더 스타일링 === */
+.header {
+    position: fixed; /* 상단 고정 */
+    top: 0;
+    width: 100%;
+    display: flex; /* 가로 배열 */
+    align-items: center;
+    padding: 15px 4%;
+    background-color: rgba(20, 20, 20, 0.9); /* 배경 반투명 처리 */
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 1.5rem;
+    color: #e50914; /* 넷플릭스 빨간색 */
+    font-weight: bold;
+    margin-right: 30px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+}
+
+.nav-links a,
+.user-actions span {
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.user-actions {
+    margin-left: auto; /* 오른쪽 끝으로 이동 */
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+
+/* === 2. 콘텐츠 섹션 스타일링 === */
+.content-wrapper {
+    padding-top: 80px; /* 고정된 헤더 높이만큼 공간 확보 */
+    padding-left: 4%;
+    padding-right: 4%;
+}
+
+.content-section {
+    margin-bottom: 40px;
+}
+
+.content-section h2 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+/* 포스터 행 (가로 스크롤링) */
+.poster-row {
+    display: flex;
+    overflow-x: scroll; /* 가로 스크롤 가능 */
+    padding-bottom: 15px; /* 스크롤바를 위해 */
+    gap: 10px; /* 포스터 사이 간격 */
+}
+
+.poster-row::-webkit-scrollbar {
+    height: 5px; /* 스크롤바 높이 줄이기 */
+}
+
+.poster-row::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3); /* 스크롤바 색상 */
+    border-radius: 10px;
+}
+
+/* 일반 포스터 카드 */
+.poster-card {
+    flex-shrink: 0; /* 크기 줄어들지 않게 고정 */
+    width: 200px; /* 포스터의 너비 */
+    height: auto;
+    cursor: pointer;
+    transition: transform 0.2s; /* 호버 효과 */
+}
+
+.poster-card:hover {
+    transform: scale(1.05); /* 마우스 오버 시 약간 확대 */
+}
+
+.poster-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* === 3. TOP 10 섹션 스타일링 === */
+.top-ten-row {
+    /* TOP 10은 일반 포스터보다 더 넓은 간격을 가질 수 있습니다. */
+    gap: 20px;
+}
+
+.top-ten-card {
+    position: relative;
+    flex-shrink: 0;
+    width: 100px; /* 예시 이미지처럼 좁게 설정 */
+    height: auto;
+    display: flex;
+    align-items: flex-end; /* 순위 숫자를 아래쪽에 배치 */
+    cursor: pointer;
+}
+
+.rank-number {
+    position: absolute;
+    left: -20px; /* 포스터 왼쪽으로 숫자 일부 이동 */
+    font-size: 10rem; /* 매우 크게 */
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.2); /* 투명한 흰색 */
+    -webkit-text-stroke: 4px rgba(0, 0, 0, 0.8); /* 검은색 테두리 */
+    z-index: 1;
+    line-height: 0.8; /* 줄 높이 조절 */
+}
+
+.top-ten-card .poster-image {
+    position: relative;
+    z-index: 2; /* 포스터를 숫자 위로 올림 */
+    width: 100%;
+}
