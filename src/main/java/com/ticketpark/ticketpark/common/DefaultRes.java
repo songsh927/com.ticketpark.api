@@ -8,25 +8,25 @@ import lombok.Data;
 @AllArgsConstructor
 @Builder
 public class DefaultRes<T> {
-    private int statusCode;
-    private String responseMessage;
+    private boolean success;
+    private String msg;
     private T data;
 
-    public DefaultRes(final int statusCode, final String responseMessage) {
-        this.statusCode = statusCode;
-        this.responseMessage = responseMessage;
+    public DefaultRes(final boolean success, final String responseMessage) {
+        this.success = success;
+        this.msg = responseMessage;
         this.data = null;
     }
 
-    public static<T> DefaultRes<T> res(final int statusCode, final String responseMessage) {
-        return res(statusCode, responseMessage, null);
+    public static<T> DefaultRes<T> res(final boolean success, final String responseMessage) {
+        return res(success, responseMessage, null);
     }
 
-    public static<T> DefaultRes<T> res(final int statusCode, final String responseMessage, final T t) {
+    public static<T> DefaultRes<T> res(final boolean success, final String responseMessage, final T t) {
         return DefaultRes.<T>builder()
                 .data(t)
-                .statusCode(statusCode)
-                .responseMessage(responseMessage)
+                .success(success)
+                .msg(responseMessage)
                 .build();
     }
 }

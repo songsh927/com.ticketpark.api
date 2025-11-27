@@ -1,17 +1,17 @@
 package com.ticketpark.ticketpark.member.controller;
 
 import com.ticketpark.ticketpark.common.DefaultRes;
-import com.ticketpark.ticketpark.common.ResponseMessage;
-import com.ticketpark.ticketpark.common.StatusCode;
+import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
 import com.ticketpark.ticketpark.member.dto.LoginDTO;
-import com.ticketpark.ticketpark.member.entity.MemberEntity;
+import com.ticketpark.ticketpark.member.dto.UpdateDTO;
 import com.ticketpark.ticketpark.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 
 @RestController
@@ -23,21 +23,17 @@ public class MemberController {
 
     @PostMapping("/create")
     public ResponseEntity join(@RequestBody JoinDTO joinDTO){
-        boolean result = memberService.createMemberInfo(joinDTO);
+        DefaultRes result = memberService.createMemberInfo(joinDTO);
 
-        if(result){
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.CREATED_USER), HttpStatus.OK);
-        } else {
-            return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, ResponseMessage.CREATED_USER_FAIL), HttpStatus.BAD_REQUEST);
-        }
+        return new ResponseEntity(DefaultRes.res(result.isSuccess(), result.getMsg()), result.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
 
     }
 
     @GetMapping("/find")
-    public MemberEntity findMember(@RequestParam(required = true) String idx){
-        MemberEntity member = memberService.findMemberByIdx(Integer.parseInt(idx));
+    public ResponseEntity findMember(@RequestParam(required = true) String idx){
+        GetMemberInfoDTO member = memberService.findMemberByIdx(Integer.parseInt(idx));
 
-        return member;
+        return new ResponseEntity(DefaultRes.res(true, "회원정보 조회 성공", member), HttpStatus.OK);
     }
 
     @PostMapping("/login")
@@ -46,11 +42,22 @@ public class MemberController {
         boolean result = memberService.login(loginDTO.getId(), loginDTO.getPassword());
 
         if(result){
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.LOGIN_SUCCESS), HttpStatus.OK);
+            return new ResponseEntity(DefaultRes.res(true, "로그인 성공"), HttpStatus.OK);
         } else {
-            return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, ResponseMessage.LOGIN_FAIL), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity(DefaultRes.res(false, "로그인 실패"), HttpStatus.BAD_REQUEST);
         }
 
+    }
+
+//    토큰 개발 후 추가개발 예정
+//    @PostMapping("/logout")
+//    public ResponseEntity logout(){}
+
+    @PatchMapping
+    public ResponseEntity update(@RequestBody UpdateDTO updateDTO){
+        memberService.updateMemberInfo(updateDTO);
+
+        return new ResponseEntity(DefaultRes.res(true, "업데이트 성공"), HttpStatus.ACCEPTED);
     }
 
 }
