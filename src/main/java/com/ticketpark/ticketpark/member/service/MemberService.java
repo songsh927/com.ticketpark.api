@@ -1,11 +1,14 @@
 package com.ticketpark.ticketpark.member.service;
 
 import com.ticketpark.ticketpark.common.DefaultRes;
+import com.ticketpark.ticketpark.common.auth.JwtProvider;
+import com.ticketpark.ticketpark.common.dto.TokenInfo;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
 import com.ticketpark.ticketpark.member.dto.UpdateDTO;
 import com.ticketpark.ticketpark.member.entity.MemberEntity;
 import com.ticketpark.ticketpark.member.repository.MemberRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,8 @@ import java.util.Optional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
     @Transactional
     public DefaultRes createMemberInfo(JoinDTO joinDTO){
@@ -24,12 +29,12 @@ public class MemberService {
         DefaultRes checkDuplicate = validateDuplicationMemberInfo(joinDTO);
 
         if(checkDuplicate.isSuccess()){
-            memberRepository.saveMember(joinDTO.toMember());
-            return DefaultRes.res(true, "회원가입 성공", new GetMemberInfoDTO(joinDTO.toMember()));
+            String encodedPassword = passwordEncoder.encode(joinDTO.getPassword());
+            memberRepository.saveMember(joinDTO.toMember(encodedPassword));
+
+            return DefaultRes.res(true, "회원가입 성공");// TODO 로그인 페이지로 리다이렉트 필요
         }
-
         return DefaultRes.res(false, checkDuplicate.getMsg());
-
     }
 
     private DefaultRes validateDuplicationMemberInfo(JoinDTO joinDTO){
@@ -37,15 +42,16 @@ public class MemberService {
         String email  = joinDTO.getEmail();
 
         Optional<MemberEntity> isDupId = memberRepository.findOneById(id);
-
         Optional<MemberEntity> isDupEmail = memberRepository.findOneByEmail(email);
 
+        //아이디 중복 확인
         if(!isDupId.isEmpty()){
-            return DefaultRes.res(false, "아이디가 사용중입니다.");
+            return DefaultRes.res(false, "사용중인 아이디입니다.");
         }
 
+        //이메일 중복 확인
         if(!isDupEmail.isEmpty()){
-            return DefaultRes.res(false, "이메일이 중복되었습니다.");
+            return DefaultRes.res(false, "사용중인 이메일입니다.");
         }
 
         return DefaultRes.res(true,"");
@@ -59,19 +65,17 @@ public class MemberService {
 
     }
 
-    public boolean login(String memberId, String memberPassword){
+    public DefaultRes login(String memberId, String memberPassword){
 
-        Optional<MemberEntity> member = memberRepository.findOneById(memberId);
+        MemberEntity member = memberRepository.findOneById(memberId)
+                .orElseThrow(() -> new RuntimeException("ID " + memberId + "에 해당하는 사용자가 존재하지 않습니다."));
 
-        if(member.isEmpty()){
-            return false;
+        if(member.getMember_id().equals(memberId) && passwordEncoder.matches(memberPassword, member.getMember_pw())){
+            TokenInfo token = jwtProvider.create(member.getMember_idx(), member.getMember_id());
+            return DefaultRes.res(true,"로그인 성공", token);
         }
 
-        if(member.get().getMember_id().equals(memberId) && member.get().getMember_pw().equals(memberPassword)){
-            return true;
-        }
-
-        return false;
+        throw new RuntimeException("ID " + memberId + "에 해당하는 사용자가 존재하지 않습니다.");
     }
 
     @Transactional

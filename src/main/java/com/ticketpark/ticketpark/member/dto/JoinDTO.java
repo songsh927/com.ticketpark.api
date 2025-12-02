@@ -11,9 +11,9 @@ public class JoinDTO {
     private String password;
     private String email;
 
-    public MemberEntity toMember(){
+    public MemberEntity toMember(String encodedPassword){
         return MemberEntity.builder()
-                .member_pw(password)
+                .member_pw(encodedPassword)
                 .member_id(id)
                 .member_email(email)
                 .created_at(LocalDateTime.now())
