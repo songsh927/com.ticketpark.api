@@ -1,4 +1,4 @@
-package com.ticketpark.ticketpark.common;
+package com.ticketpark.ticketpark.common.dto;
 
 public class StatusCode {
     public static final int OK = 200;

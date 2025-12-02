@@ -1,13 +1,18 @@
 package com.ticketpark.ticketpark.member.service;
 
-import com.ticketpark.ticketpark.common.DefaultRes;
+import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
+import com.ticketpark.ticketpark.common.redis.RedisService;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
 import com.ticketpark.ticketpark.member.dto.UpdateDTO;
 import com.ticketpark.ticketpark.member.entity.MemberEntity;
+import com.ticketpark.ticketpark.member.entity.MemberSecurityEntity;
 import com.ticketpark.ticketpark.member.repository.MemberRepository;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +27,8 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final RedisService redisService;
+    private final AuthenticationManager authenticationManager;
 
     @Transactional
     public DefaultRes createMemberInfo(JoinDTO joinDTO){
@@ -67,15 +74,19 @@ public class MemberService {
 
     public DefaultRes login(String memberId, String memberPassword){
 
-        MemberEntity member = memberRepository.findOneById(memberId)
-                .orElseThrow(() -> new RuntimeException("ID " + memberId + "에 해당하는 사용자가 존재하지 않습니다."));
+        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(
+                memberId,
+                memberPassword
+        );
 
-        if(member.getMember_id().equals(memberId) && passwordEncoder.matches(memberPassword, member.getMember_pw())){
-            TokenInfo token = jwtProvider.create(member.getMember_idx(), member.getMember_id());
-            return DefaultRes.res(true,"로그인 성공", token);
+        try{
+            Authentication authenticated = authenticationManager.authenticate(authenticationToken);
+            MemberSecurityEntity memberInfo = (MemberSecurityEntity) authenticated.getPrincipal();
+
+            return DefaultRes.res(true, "로그인 성공", memberInfo);
+        }catch (Exception e){
+            return DefaultRes.res(false, "로그인 실패");
         }
-
-        throw new RuntimeException("ID " + memberId + "에 해당하는 사용자가 존재하지 않습니다.");
     }
 
     @Transactional

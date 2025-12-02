@@ -1,4 +1,4 @@
-package com.ticketpark.ticketpark.common;
+package com.ticketpark.ticketpark.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
