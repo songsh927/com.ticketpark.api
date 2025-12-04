@@ -65,7 +65,6 @@ public class MemberController {
     @PostMapping("/logout")
     public void logout(@RequestAttribute("user") Map<String, Object> userInfo){
 
-        System.out.println(userInfo);
         redisService.deleteValues(userInfo.get("token").toString());
         SecurityContextHolder.clearContext();
 
