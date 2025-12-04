@@ -1,14 +1,15 @@
 package com.ticketpark.ticketpark.common.auth;
 
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
+import com.ticketpark.ticketpark.common.redis.RedisService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,20 +21,26 @@ public class JwtProvider {
     private final long accessExpireTime;
     private final long refreshExpireTime;
 
+    private final RedisService redisService;
+
     public JwtProvider(
             @Value("${jwt.secret}") String secretKey,
             @Value("${jwt.access-expire-time}") long accessExpireTime,
-            @Value("${jwt.refresh-expire-time}") long refreshExpireTime
+            @Value("${jwt.refresh-expire-time}") long refreshExpireTime,
+            RedisService redisService
     ) {
         this.key = Base64.getEncoder().encodeToString(secretKey.getBytes());
-        this.accessExpireTime = 3600000; //accessExpireTime;
-        this.refreshExpireTime = 3600000; //refreshExpireTime;
+        this.redisService = redisService;
+        this.accessExpireTime = accessExpireTime;
+        this.refreshExpireTime = refreshExpireTime;
     }
 
     public TokenInfo create(Integer memberIdx, String memberId){
-//        String memberId = authentication.getName();
         String accessToken = generateAccessToken(memberIdx, memberId);
         String refreshToken = generateRefreshToken(memberIdx, memberId);
+
+        redisService.setValues(accessToken, memberId + "-accessToken", Duration.ofMillis(accessExpireTime));
+        redisService.setValues(refreshToken, memberId + "-refreshToken", Duration.ofMillis(refreshExpireTime));
 
         return TokenInfo.builder()
                 .accessToken(accessToken)
