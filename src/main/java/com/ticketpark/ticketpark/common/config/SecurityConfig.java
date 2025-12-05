@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
 //                        .requestMatchers("/member/myinfo", "/member/update", "/member/logout").authenticated()
-                        .requestMatchers("/**").permitAll() // 💡 임시 해결책
+                        .requestMatchers("/**").permitAll()
                 );
 
 

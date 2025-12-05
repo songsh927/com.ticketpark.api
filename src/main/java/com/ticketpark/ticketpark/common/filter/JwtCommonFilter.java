@@ -35,7 +35,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
         String token = request.getHeader("x-access-token");
         String checkToken = (String) redisService.getValues(token);
 
-        if(token != null || checkToken != null){
+        if(token == null || checkToken == null){
             // TODO return 401
             System.out.println(":::: token : " + token);
             System.out.println(":::: check : " + checkToken);
