@@ -54,6 +54,9 @@ dependencies {
 
 	//REDIS
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	//json parse
+	implementation 'com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations'
 }
 
 tasks.named('test') {
