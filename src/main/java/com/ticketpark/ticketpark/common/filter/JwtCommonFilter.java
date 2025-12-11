@@ -9,18 +9,12 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -50,7 +44,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
             return;
         }
 
-
+        System.out.println("JwtCommonFilter.doFilterInternal");
         if (jwtProvider.validateToken(token)) {
 
             Claims extractedTokenInfo = jwtProvider.extractAllClaims(token);
@@ -78,7 +72,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
         // JWT 토큰이 필요 없는 경로들에 대해 필터를 건너뜁니다
         return path.startsWith("/member/login") ||
                 path.startsWith("/member/create") ||
-                path.startsWith("/ticket") ||
-                path.startsWith("/login");
+                path.startsWith("/ticket/list") ||
+                path.startsWith("/ticket/detail");
     }
 }

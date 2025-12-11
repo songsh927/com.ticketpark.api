@@ -1,6 +1,5 @@
 package com.ticketpark.ticketpark.ticket.repository;
 
-import com.ticketpark.ticketpark.ticket.dto.ReservationForm;
 import com.ticketpark.ticketpark.ticket.dto.TicketDetailDTO;
 import com.ticketpark.ticketpark.ticket.dto.TicketListPageDTO;
 import com.ticketpark.ticketpark.ticket.entity.TicketMainEntity;
@@ -13,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -23,14 +23,14 @@ public class TicketRepository {
 
     public Page<TicketListPageDTO> findAllByPage(Pageable pageable){
 
-        String contentQuery = "SELECT tm FROM TicketMainEntity tm";
+        String contentQuery = "SELECT tm FROM TicketMainEntity tm WHERE tm.ticket_close > NOW()";
 
         List<TicketMainEntity> ticketList = em.createQuery(contentQuery, TicketMainEntity.class)
                 .setFirstResult((int) pageable.getOffset())
                 .setMaxResults(pageable.getPageSize())
                 .getResultList();
 
-        String countQuery = "SELECT COUNT(tm) FROM TicketMainEntity tm";
+        String countQuery = "SELECT COUNT(tm) FROM TicketMainEntity tm WHERE tm.ticket_close > NOW()";
 
         Long total = em.createQuery(countQuery, Long.class).getSingleResult();
 
@@ -40,7 +40,7 @@ public class TicketRepository {
 
     public Page<TicketListPageDTO> findAllByOption(Pageable pageable, String searchType, String searchValue){
 
-        String contentQuery = "SELECT tm FROM TicketMainEntity tm WHERE tm.ticket_title LIKE CONCAT('%', :searchValue,'%')";
+        String contentQuery = "SELECT tm FROM TicketMainEntity tm WHERE tm.ticket_title LIKE CONCAT('%', :searchValue,'%') AND tm.ticket_close > NOW()";
 
         List<TicketMainEntity> ticketList = em.createQuery(contentQuery, TicketMainEntity.class)
                 .setParameter("searchValue", searchValue)
@@ -48,7 +48,7 @@ public class TicketRepository {
                 .setMaxResults(pageable.getPageSize())
                 .getResultList();
 
-        String countQuery = "SELECT COUNT(tm) FROM TicketMainEntity tm WHERE tm.ticket_title LIKE CONCAT('%', :searchValue,'%')";
+        String countQuery = "SELECT COUNT(tm) FROM TicketMainEntity tm WHERE tm.ticket_title LIKE CONCAT('%', :searchValue,'%') AND tm.ticket_close > NOW()";
 
         Long total = em.createQuery(countQuery, Long.class)
                 .setParameter("searchValue", searchValue)
@@ -58,7 +58,7 @@ public class TicketRepository {
 
     }
 
-    public TicketDetailDTO findOneByIdx(Integer ticket_idx){
+    public Optional<TicketDetailDTO> findOneByIdx(Integer ticket_idx){
 
         String query = "SELECT NEW TicketDetailDTO(" +
                 "tm.ticket_idx, tm.ticket_title, tm.ticket_sub_title, tm.ticket_title_image, tm.ticket_open, tm.ticket_close, " +
@@ -66,11 +66,11 @@ public class TicketRepository {
                 "FROM TicketMainEntity tm LEFT JOIN tm.ticketDetail td " +
                 "WHERE tm.ticket_idx = :ticket_idx";
 
-        TicketDetailDTO ticketInfo =  em.createQuery(query, TicketDetailDTO.class)
+        List<TicketDetailDTO> ticketInfo =  em.createQuery(query, TicketDetailDTO.class)
                 .setParameter("ticket_idx", ticket_idx)
-                .getSingleResult();
+                .getResultList();
 
-        return ticketInfo;
+        return ticketInfo.stream().findAny();
 
     }
 

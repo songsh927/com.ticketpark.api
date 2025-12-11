@@ -12,17 +12,19 @@ public class ApiExceptionAdvice {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity exceptionHandler(HttpServletRequest http, ApiException e){
-        return new ResponseEntity(DefaultRes.res(false, e.getMessage()), HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity(DefaultRes.res(false, e.getError().getMessage()), e.getError().getStatus());
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity exceptionHandler(HttpServletRequest http,final RuntimeException e){
-        return new ResponseEntity(DefaultRes.res(false, e.getMessage()), HttpStatus.UNAUTHORIZED);
+        System.out.println("[ERROR]::::"+ e.getMessage());
+        return new ResponseEntity(DefaultRes.res(false, "error" ), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(RuntimeException.class)
+    @ExceptionHandler(Exception.class)
     public ResponseEntity exceptionHandler(HttpServletRequest http,final Exception e){
-        return new ResponseEntity(DefaultRes.res(false, e.getMessage()), HttpStatus.UNAUTHORIZED);
+        System.out.println("[ERROR]::::"+ e.getMessage());
+        return new ResponseEntity(DefaultRes.res(false, "error"), HttpStatus.UNAUTHORIZED);
     }
 
 
