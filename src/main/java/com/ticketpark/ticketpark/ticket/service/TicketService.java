@@ -7,6 +7,7 @@ import com.ticketpark.ticketpark.ticket.dto.ReservationForm;
 import com.ticketpark.ticketpark.ticket.dto.TicketDetailDTO;
 import com.ticketpark.ticketpark.ticket.dto.TicketListPageDTO;
 import com.ticketpark.ticketpark.ticket.entity.TicketReserveEntity;
+import com.ticketpark.ticketpark.ticket.repository.TicketJpaRepository;
 import com.ticketpark.ticketpark.ticket.repository.TicketRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.Optional;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
+    private final TicketJpaRepository ticketJpaRepository;
 
     public DefaultRes getTicketListByOption(Integer page, String searchType, String searchValue) {
 
@@ -53,6 +55,14 @@ public class TicketService {
     @Transactional
     public DefaultRes reserveTicket(Integer ticket_idx, Integer member_idx){
 
+        boolean checkQty = ticketJpaRepository.findByIdxWithPessimisticLock(ticket_idx);
+
+        if(!checkQty){
+            System.out.println(":::: 티켓의 수량 부족");
+            throw new ApiException(ExceptionEnum.INTERNAL_SERVER_ERROR);
+        }
+
+        ticketJpaRepository.decreaseTicketQty(ticket_idx);
         ticketRepository.createReservation(new TicketReserveEntity(ticket_idx, member_idx));
         return DefaultRes.res(true, "");
     }

@@ -2,9 +2,11 @@ package com.ticketpark.ticketpark.ticket.entity;
 
 import jakarta.persistence.*;
 import lombok.Builder;
+import lombok.Getter;
 
 @Entity
 @Table(name = "`TICKET_RESERVE`")
+@Getter
 public class TicketReserveEntity {
 
     @Id

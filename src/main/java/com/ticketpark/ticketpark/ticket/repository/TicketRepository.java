@@ -1,5 +1,6 @@
 package com.ticketpark.ticketpark.ticket.repository;
 
+import com.ticketpark.ticketpark.common.exception.ApiException;
 import com.ticketpark.ticketpark.ticket.dto.TicketDetailDTO;
 import com.ticketpark.ticketpark.ticket.dto.TicketListPageDTO;
 import com.ticketpark.ticketpark.ticket.entity.TicketMainEntity;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Repository
 public class TicketRepository {
 
+    public static TicketRepository ticketRepository;
     @PersistenceContext
     private EntityManager em;
 
