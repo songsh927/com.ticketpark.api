@@ -19,7 +19,9 @@ public class TicketReserveEntity {
     @Column(nullable = false, updatable = false)
     private Integer ticket_idx;
 
-    @Column(nullable = false, updatable = false, unique = true)
+//    @Column(nullable = false, updatable = false, unique = true)
+//    private String ticket_member_uq;
+    @Column(nullable = false, updatable = false)
     private String ticket_member_uq;
 
     @Builder

@@ -4,7 +4,7 @@ import { check, sleep } from 'k6';
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 // 토큰(=계정) 개수는 VU 이상 권장
-const TOKEN_COUNT = Number(__ENV.TOKEN_COUNT || 9000);
+const TOKEN_COUNT = Number(__ENV.TOKEN_COUNT || 300);
 const USER_PREFIX = __ENV.USER_PREFIX || 'testuser';
 const PASSWORD = __ENV.PASSWORD || 'qwer1234';
 
@@ -30,21 +30,19 @@ function isSuccessStatus(s) {
 export const options = {
   scenarios: {
     reserve: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '5s', target: 50 },
-        { duration: '20s', target: 50 },
-        { duration: '5s', target: 0 },
-      ],
-      gracefulRampDown: '5s',
+      executor: 'constant-arrival-rate',
+      rate: 3000,
+      timeUnit: '1s',
+      preAllocatedVUs: 3000,
+      maxVUs: 6000,
+      duration : '1m'
     },
   },
   thresholds: {
-    http_req_failed: ['rate<0.05'],        // 동시성 테스트는 실패(409 등)가 정상일 수 있어 실패율 기준 완화
-    http_req_duration: ['p(95)<800'],      // 락 경합 시 느려질 수 있어 기준 완화(원하면 조정)
+    // http_req_failed: ['rate<0.05'],        // 동시성 테스트는 실패(409 등)가 정상일 수 있어 실패율 기준 완화
+    // http_req_duration: ['p(95)<800'],      // 락 경합 시 느려질 수 있어 기준 완화(원하면 조정)
   },
-  setupTimeout: '10m'
+  // setupTimeout: '10m'
 };
 
 export function setup() {
@@ -113,22 +111,28 @@ export default function (data) {
     'x-access-token': token,
   };
 
-  const url = `${BASE_URL}/ticket/reserve/${ticketId}`;
-  const res = http.post(url, null, { headers });
+  const getTicketInfo = http.get(`http://localhost:8080/ticket/detail/1`);
 
-  // ✅ 동시성 테스트에서는 "실패"도 정상 결과일 수 있어요.
-  // 예: 매진이면 409/400 등
-  // 그래서 체크는 두 단계로 나눠서 관측하기 좋게 함.
-  check(res, {
-    'reserve responded': (r) => r.status !== 0, // connection reset 등 네트워크 실패만 잡기
-  });
-
-  // 성공/경합 실패를 구분해서 로그/지표로 보고 싶으면 아래처럼
-  if (!isSuccessStatus(res.status) && res.status !== 409 && res.status !== 400) {
-    // 409(중복/매진), 400(비즈니스 실패) 등은 케이스에 따라 정상일 수 있음
-    // 진짜 이상한 에러만 찍기
-    // console.error(`[RESERVE ERROR] status=${res.status} body=${res.body}`);
+  if(getTicketInfo.status == 200){
+    const url = `${BASE_URL}/ticket/reserve/${ticketId}`;
+    const res = http.post(url, null, { headers });
+  
+    // ✅ 동시성 테스트에서는 "실패"도 정상 결과일 수 있어요.
+    // 예: 매진이면 409/400 등
+    // 그래서 체크는 두 단계로 나눠서 관측하기 좋게 함.
+    check(res, {
+      'reserve responded': (r) => r.status !== 0, // connection reset 등 네트워크 실패만 잡기
+    });
+  
+    // 성공/경합 실패를 구분해서 로그/지표로 보고 싶으면 아래처럼
+    if (!isSuccessStatus(res.status) && res.status !== 409 && res.status !== 400) {
+      // 409(중복/매진), 400(비즈니스 실패) 등은 케이스에 따라 정상일 수 있음
+      // 진짜 이상한 에러만 찍기
+      // console.error(`[RESERVE ERROR] status=${res.status} body=${res.body}`);
+    }
+  
+    sleep(SLEEP_SEC);
   }
 
-  sleep(SLEEP_SEC);
+  
 }

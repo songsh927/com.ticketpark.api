@@ -59,7 +59,7 @@ public class TicketService {
 
         if(!checkQty){
             System.out.println(":::: 티켓의 수량 부족");
-            throw new ApiException(ExceptionEnum.INTERNAL_SERVER_ERROR);
+            throw new ApiException(ExceptionEnum.TICKET_QTY_FAIL);
         }
 
         ticketJpaRepository.decreaseTicketQty(ticket_idx);

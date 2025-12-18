@@ -44,7 +44,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
             return;
         }
 
-        System.out.println("JwtCommonFilter.doFilterInternal");
+
         if (jwtProvider.validateToken(token)) {
 
             Claims extractedTokenInfo = jwtProvider.extractAllClaims(token);

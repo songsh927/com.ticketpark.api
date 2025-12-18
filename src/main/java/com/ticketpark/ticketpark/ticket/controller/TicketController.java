@@ -33,6 +33,7 @@ public class TicketController {
     @GetMapping("/detail/{idx}")
     public ResponseEntity getTicketDetail(@PathVariable(value = "idx") String idx){
 
+        System.out.println("TicketController.getTicketDetail");
         DefaultRes result = ticketService.getTicketDetailByIdx(Integer.parseInt(idx));
 
         return new ResponseEntity(DefaultRes.res(true, "", result.getData()), HttpStatus.OK);
@@ -46,6 +47,7 @@ public class TicketController {
     @PostMapping("/reserve/{idx}")
     public ResponseEntity reserveTicket(@RequestAttribute("user") Map<String, Object> userInfo, @PathVariable(value = "idx") String idx){
 
+        System.out.println("TicketController.reserveTicket");
         ticketService.reserveTicket(Integer.parseInt(idx), Integer.parseInt((String) userInfo.get("memberIdx")));
 
         return new ResponseEntity(DefaultRes.res(true, ""), HttpStatus.OK);
