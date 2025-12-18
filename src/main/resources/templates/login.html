@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 페이지</title>
+    <link rel="stylesheet" th:href="@{/css/join.style.css}">
+</head>
+<body>
+<div class="login-container">
+
+    <h1 class="logo">
+        TICKETPARK
+    </h1>
+
+    <form class="login-form">
+
+        <div class="input-group">
+            <span class="icon">📧</span> <input type="email" value="" placeholder="이메일" required>
+            <span class="clear-icon">❌</span> </div>
+
+        <div class="input-group">
+            <span class="icon">🔒</span> <input type="password" value="" placeholder="비밀번호" required>
+            <span class="view-icon">👁️</span> </div>
+
+        <div class="options-row">
+            <label class="auto-login">
+                <input type="checkbox" checked>
+                자동 로그인
+            </label>
+            <a href="#" class="find-link">아이디 · 비밀번호 찾기 ></a>
+        </div>
+
+        <button type="submit" class="login-button">로그인</button>
+    </form>
+
+    <button class="signup-button">회원가입</button>
+
+    <p class="copyright">
+        ©TICKETPARK
+    </p>
+</div>
+</body>
+</html>

@@ -32,6 +32,9 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+	// DEV
+	implementation 'org.springframework.boot:spring-boot-devtools'
+
 	//MYSQL
 	implementation 'mysql:mysql-connector-java:8.0.32'
 
@@ -40,6 +43,20 @@ dependencies {
 
 	//ENV
 	implementation 'io.github.cdimascio:dotenv-java:2.2.0'
+
+	//SECURITY
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	//JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+	//REDIS
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	//json parse
+	implementation 'com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations'
 }
 
 tasks.named('test') {
