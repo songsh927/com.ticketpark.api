@@ -13,7 +13,7 @@ public class WebController {
 
     @GetMapping("/join")
     public String joinPage(){
-        return "index";
+        return "join";
     }
 
 }
