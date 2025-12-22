@@ -38,4 +38,5 @@ jobs:
           script: |
             cd /home/ubuntu/app
             mv *.jar app.jar
-            ./start.sh
+            sudo systemctl restart ticketpark.service
+
