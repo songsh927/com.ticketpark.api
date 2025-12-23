@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Entity
-@Table(name = "TICKET_RESERVE")
+@Table(name = "`TICKET_RESERVE`")
 @Getter
 public class TicketReserveEntity {
 
@@ -19,9 +19,7 @@ public class TicketReserveEntity {
     @Column(nullable = false, updatable = false)
     private Integer ticket_idx;
 
-//    @Column(nullable = false, updatable = false, unique = true)
-//    private String ticket_member_uq;
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, unique = true)
     private String ticket_member_uq;
 
     @Builder

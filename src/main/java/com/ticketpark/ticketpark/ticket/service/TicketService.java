@@ -3,6 +3,7 @@ package com.ticketpark.ticketpark.ticket.service;
 import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.exception.ApiException;
 import com.ticketpark.ticketpark.common.exception.ExceptionEnum;
+import com.ticketpark.ticketpark.ticket.dto.PageResponseDTO;
 import com.ticketpark.ticketpark.ticket.dto.ReservationForm;
 import com.ticketpark.ticketpark.ticket.dto.TicketDetailDTO;
 import com.ticketpark.ticketpark.ticket.dto.TicketListPageDTO;
@@ -30,17 +31,15 @@ public class TicketService {
     public DefaultRes getTicketListByOption(Integer page, String searchType, String searchValue) {
 
         // TODO user-agent가 PC가 아닐때 pageSize 고려
-        Pageable pageable = PageRequest.of(page > 1? page -1 : 0, 10);
+        int pageIndex = (page != null && page > 1) ? page - 1 : 0;
+        Pageable pageable = PageRequest.of(pageIndex, 10);
 
-        Page<TicketListPageDTO> ticketList = null;
+        Page<TicketListPageDTO> ticketList =
+                (searchType != null)
+                        ? ticketRepository.findAllByOption(pageable, searchType, searchValue)
+                        : ticketRepository.findAllByPage(pageable);
 
-        if(searchType != null){
-            ticketList = ticketRepository.findAllByOption(pageable, searchType, searchValue);
-        } else {
-            ticketList = ticketRepository.findAllByPage(pageable);
-        }
-
-        return DefaultRes.res(true, "", ticketList);
+        return DefaultRes.res(true, "", PageResponseDTO.from(ticketList));
     }
 
     public DefaultRes getTicketDetailByIdx(Integer ticket_idx){
