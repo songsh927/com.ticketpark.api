@@ -53,13 +53,10 @@ public class MemberController {
 
         DefaultRes result = memberService.login(loginDTO.getId(), loginDTO.getPassword());
         MemberSecurityEntity memberInfo = (MemberSecurityEntity) result.getData();
+        TokenInfo token = jwtProvider.create(memberInfo.getMemberIdx(), memberInfo.getMemberId());
 
-        if(result.isSuccess()){
-            TokenInfo token = jwtProvider.create(memberInfo.getMemberIdx(), memberInfo.getMemberId());
-            return new ResponseEntity(DefaultRes.res(true,"로그인 성공", token), HttpStatus.OK);
-        }
+        return new ResponseEntity(DefaultRes.res(true,"로그인 성공", token), HttpStatus.OK);
 
-        return new ResponseEntity(DefaultRes.res(false,"로그인 실패"), HttpStatus.BAD_REQUEST);
     }
 
     @PostMapping("/logout")

@@ -3,6 +3,8 @@ package com.ticketpark.ticketpark.member.service;
 import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
+import com.ticketpark.ticketpark.common.exception.ApiException;
+import com.ticketpark.ticketpark.common.exception.ExceptionEnum;
 import com.ticketpark.ticketpark.common.redis.RedisService;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
@@ -74,18 +76,14 @@ public class MemberService {
 
     public DefaultRes login(String memberId, String memberPassword){
 
-        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(
-                memberId,
-                memberPassword
-        );
-
         try{
+            //버그 및 내부 에러로 인한 실패도 로그인 실패로 간주
+            Authentication authenticationToken = new UsernamePasswordAuthenticationToken(memberId,memberPassword);
             Authentication authenticated = authenticationManager.authenticate(authenticationToken);
-            MemberSecurityEntity memberInfo = (MemberSecurityEntity) authenticated.getPrincipal();
 
-            return DefaultRes.res(true, "로그인 성공", memberInfo);
+            return DefaultRes.res(true, "로그인 성공", (MemberSecurityEntity) authenticated.getPrincipal());
         }catch (Exception e){
-            return DefaultRes.res(false, "로그인 실패");
+            throw new ApiException(ExceptionEnum.LOGIN_FAIL);
         }
     }
 
