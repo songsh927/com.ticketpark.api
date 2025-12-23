@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Entity
-@Table(name = "`TICKET_RESERVE`")
+@Table(name = "ticket_reserve")
 @Getter
 public class TicketReserveEntity {
 
