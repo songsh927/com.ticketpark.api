@@ -4,6 +4,7 @@ import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -24,8 +25,14 @@ public class ApiExceptionAdvice {
     @ExceptionHandler(Exception.class)
     public ResponseEntity exceptionHandler(HttpServletRequest http,final Exception e){
         System.out.println("[ERROR]::::"+ e.getMessage());
-        return new ResponseEntity(DefaultRes.res(false, "error"), HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity(DefaultRes.res(false, "error"), HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<DefaultRes<Void>> handleAuthException() {
+        return new ResponseEntity(DefaultRes.res(false, "Authentication Error"), HttpStatus.UNAUTHORIZED);
+    }
+
 
 
 }

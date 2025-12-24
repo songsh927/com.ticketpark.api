@@ -10,7 +10,7 @@ import org.hibernate.type.SqlTypes;
 import java.util.Map;
 
 @Entity
-@Table(name = "TICKET_DETAIL")
+@Table(name = "ticket_detail")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -11,6 +11,7 @@ public enum ExceptionEnum {
     ACCESS_DENIED_EXCEPTION(HttpStatus.UNAUTHORIZED, "E0002"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "E0003"),
     TICKET_QTY_FAIL(HttpStatus.CONFLICT, "E0004", "티켓이 매진되었습니다."),
+    LOGIN_FAIL(HttpStatus.CONFLICT, "E0005", "로그인에 실패했습니다."),
     SECURITY_01(HttpStatus.UNAUTHORIZED, "S0001", "권한이 없습니다.");
 
     private final HttpStatus status;
