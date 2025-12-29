@@ -15,7 +15,7 @@ public class WaitingQueueScheduler {
     private final QueueService queueService;
     private final QueueRedisService queueRedisService;
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 1000)
     public void processQueue() {
 
         Set<String> waitingKeys = queueRedisService.getAllKeys("ticket:waiting:*");
@@ -24,7 +24,7 @@ public class WaitingQueueScheduler {
 
         for (String key : waitingKeys) {
             String eventId = key.split(":")[2];
-            queueService.allowUsers(eventId, 100);
+            queueService.allowUsers(eventId, 50);
         }
     }
 }

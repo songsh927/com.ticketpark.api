@@ -33,10 +33,10 @@ public class QueueService {
 
     public void allowUsers(String ticketIdx, long count) {
         Set<Object> users = queueRedisService.getTopOrder(WAITING_KEY + ticketIdx, count);
-        System.out.println(users);
+
         for (Object user : users) {
             String userId = (String) user;
-            System.out.println(userId);
+
             queueRedisService.setValues(WORKING_KEY + ticketIdx + ":" + userId, "allowed", Duration.ofMinutes(5));
             queueRedisService.removeUser(WAITING_KEY + ticketIdx, userId);
         }
