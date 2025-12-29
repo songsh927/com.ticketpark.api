@@ -3,6 +3,7 @@ package com.ticketpark.ticketpark.rpa;
 import com.ticketpark.ticketpark.common.redis.QueueRedisService;
 import com.ticketpark.ticketpark.ticket.service.QueueService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,8 +15,7 @@ public class WaitingQueueScheduler {
     private final QueueService queueService;
     private final QueueRedisService queueRedisService;
 
-    // 10초마다 100명씩 통과
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 5000)
     public void processQueue() {
 
         Set<String> waitingKeys = queueRedisService.getAllKeys("ticket:waiting:*");
