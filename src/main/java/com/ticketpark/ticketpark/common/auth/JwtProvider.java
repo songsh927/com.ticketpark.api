@@ -1,7 +1,7 @@
 package com.ticketpark.ticketpark.common.auth;
 
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
-import com.ticketpark.ticketpark.common.redis.RedisService;
+import com.ticketpark.ticketpark.common.redis.AuthRedisService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -21,16 +21,16 @@ public class JwtProvider {
     private final long accessExpireTime;
     private final long refreshExpireTime;
 
-    private final RedisService redisService;
+    private final AuthRedisService authRedisService;
 
     public JwtProvider(
             @Value("${jwt.secret}") String secretKey,
             @Value("${jwt.access-expire-time}") long accessExpireTime,
             @Value("${jwt.refresh-expire-time}") long refreshExpireTime,
-            RedisService redisService
+            AuthRedisService authRedisService
     ) {
         this.key = Base64.getEncoder().encodeToString(secretKey.getBytes());
-        this.redisService = redisService;
+        this.authRedisService = authRedisService;
         this.accessExpireTime = accessExpireTime;
         this.refreshExpireTime = refreshExpireTime;
     }
@@ -39,8 +39,8 @@ public class JwtProvider {
         String accessToken = generateAccessToken(memberIdx, memberId);
         String refreshToken = generateRefreshToken(memberIdx, memberId);
 
-        redisService.setValues(accessToken, memberId + "-accessToken", Duration.ofMillis(accessExpireTime));
-        redisService.setValues(refreshToken, memberId + "-refreshToken", Duration.ofMillis(refreshExpireTime));
+        authRedisService.setValues(accessToken, memberId + "-accessToken", Duration.ofMillis(accessExpireTime));
+        authRedisService.setValues(refreshToken, memberId + "-refreshToken", Duration.ofMillis(refreshExpireTime));
 
         return TokenInfo.builder()
                 .accessToken(accessToken)

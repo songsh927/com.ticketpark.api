@@ -1,5 +1,6 @@
 package com.ticketpark.ticketpark.common.redis;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
@@ -7,14 +8,14 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 @Component
-public class RedisService {
+public class AuthRedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ValueOperations<String, Object> values;
 
 
-    public RedisService(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public AuthRedisService(@Qualifier("authRedisTemplate") RedisTemplate<String, Object> authRedisTemplate) {
+        this.redisTemplate = authRedisTemplate;
         this.values = redisTemplate.opsForValue();
     }
 

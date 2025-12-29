@@ -2,10 +2,9 @@ package com.ticketpark.ticketpark.member.service;
 
 import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
-import com.ticketpark.ticketpark.common.dto.TokenInfo;
 import com.ticketpark.ticketpark.common.exception.ApiException;
 import com.ticketpark.ticketpark.common.exception.ExceptionEnum;
-import com.ticketpark.ticketpark.common.redis.RedisService;
+import com.ticketpark.ticketpark.common.redis.AuthRedisService;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
 import com.ticketpark.ticketpark.member.dto.UpdateDTO;
@@ -29,7 +28,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-    private final RedisService redisService;
+    private final AuthRedisService authRedisService;
     private final AuthenticationManager authenticationManager;
 
     @Transactional

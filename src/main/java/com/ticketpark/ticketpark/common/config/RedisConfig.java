@@ -3,6 +3,7 @@ package com.ticketpark.ticketpark.common.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -20,33 +21,50 @@ public class RedisConfig {
     @Value("${spring.data.redis.port}")
     private int port;
 
-    // Redis 연결 팩토리 설정
+    @Value("${spring.data.redis.auth.database}")
+    private int authDatabase;
+
+    @Value("${spring.data.redis.queue.database}")
+    private int queueDatabase;
+
     @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
-        redisStandaloneConfiguration.setHostName(host);
-        redisStandaloneConfiguration.setPort(port);
+    public RedisConnectionFactory authRedisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
+        config.setDatabase(authDatabase);
+        return new LettuceConnectionFactory(config);
+    }
 
+    @Bean(name = {"authRedisTemplate", "redisTemplate"})
+    @Primary
+    public RedisTemplate<String, Object> authRedisTemplate() {
+        return createTemplate(authRedisConnectionFactory());
+    }
 
-        return new LettuceConnectionFactory(redisStandaloneConfiguration);
+    @Bean
+    public RedisConnectionFactory queueRedisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);;
+        config.setDatabase(queueDatabase);
+        return new LettuceConnectionFactory(config);
+    }
+
+    @Bean(name = "queueRedisTemplate")
+    public RedisTemplate<String, Object> queueRedisTemplate() {
+        return createTemplate(queueRedisConnectionFactory());
     }
 
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate() {
 
-        // Redis와 통신할 때 사용할 템플릿 설정
-        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(redisConnectionFactory());
+    private RedisTemplate<String, Object> createTemplate(RedisConnectionFactory factory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
 
-        // key, value에 대한 직렬화 방법 설정
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(new StringRedisSerializer());
+        StringRedisSerializer serializer = new StringRedisSerializer();
+        template.setKeySerializer(serializer);
+        template.setValueSerializer(serializer);
+        template.setHashKeySerializer(serializer);
+        template.setHashValueSerializer(serializer);
 
-        // hash key, hash value에 대한 직렬화 방법 설정
-        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-        redisTemplate.setHashValueSerializer(new StringRedisSerializer());
-
-        return redisTemplate;
+        template.afterPropertiesSet();
+        return template;
     }
 }

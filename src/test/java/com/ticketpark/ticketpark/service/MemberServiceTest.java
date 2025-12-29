@@ -3,10 +3,9 @@ package com.ticketpark.ticketpark.service;
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
 import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
-import com.ticketpark.ticketpark.common.redis.RedisService;
+import com.ticketpark.ticketpark.common.redis.AuthRedisService;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
-import com.ticketpark.ticketpark.member.dto.LoginDTO;
 import com.ticketpark.ticketpark.member.entity.MemberSecurityEntity;
 import com.ticketpark.ticketpark.member.repository.MemberRepository;
 import com.ticketpark.ticketpark.member.service.MemberSecurityService;
@@ -14,7 +13,6 @@ import com.ticketpark.ticketpark.member.service.MemberService;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +41,7 @@ public class MemberServiceTest {
     JwtProvider jwtProvider;
 
     @Autowired
-    RedisService redisService;
+    AuthRedisService authRedisService;
 
     @Test
     public void 정상_회원가입() throws Exception {
@@ -71,7 +69,7 @@ public class MemberServiceTest {
         TokenInfo token = jwtProvider.create(memberInfo.getMemberIdx(), memberInfo.getMemberId());
         String accessToken = token.getAccessToken();
 
-        String redisMemberToken = (String) redisService.getValues(accessToken);
+        String redisMemberToken = (String) authRedisService.getValues(accessToken);
         String keyInfo[] = redisMemberToken.split("-");
 
         assertEquals(keyInfo[0], memberInfo.getMemberId());

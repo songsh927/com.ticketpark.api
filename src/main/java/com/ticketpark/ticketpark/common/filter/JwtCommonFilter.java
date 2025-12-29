@@ -1,8 +1,7 @@
 package com.ticketpark.ticketpark.common.filter;
 
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
-import com.ticketpark.ticketpark.common.dto.DefaultRes;
-import com.ticketpark.ticketpark.common.redis.RedisService;
+import com.ticketpark.ticketpark.common.redis.AuthRedisService;
 import com.ticketpark.ticketpark.member.service.MemberSecurityService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.*;
@@ -26,7 +25,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final MemberSecurityService memberSecurityService;
-    private final RedisService redisService;
+    private final AuthRedisService authRedisService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
@@ -34,7 +33,7 @@ public class JwtCommonFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         String token = request.getHeader("x-access-token");
-        String checkToken = (String) redisService.getValues(token);
+        String checkToken = (String) authRedisService.getValues(token);
 
         if(token == null || checkToken == null){
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

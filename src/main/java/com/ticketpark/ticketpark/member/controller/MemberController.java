@@ -3,7 +3,7 @@ package com.ticketpark.ticketpark.member.controller;
 import com.ticketpark.ticketpark.common.dto.DefaultRes;
 import com.ticketpark.ticketpark.common.auth.JwtProvider;
 import com.ticketpark.ticketpark.common.dto.TokenInfo;
-import com.ticketpark.ticketpark.common.redis.RedisService;
+import com.ticketpark.ticketpark.common.redis.AuthRedisService;
 import com.ticketpark.ticketpark.member.dto.GetMemberInfoDTO;
 import com.ticketpark.ticketpark.member.dto.JoinDTO;
 import com.ticketpark.ticketpark.member.dto.LoginDTO;
@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +28,7 @@ public class MemberController {
     private final MemberService memberService;
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
-    private final RedisService redisService;
+    private final AuthRedisService authRedisService;
 
     @PostMapping("/create")
     public ResponseEntity join(@RequestBody JoinDTO joinDTO){
@@ -62,7 +60,7 @@ public class MemberController {
     @PostMapping("/logout")
     public void logout(@RequestAttribute("user") Map<String, Object> userInfo){
 
-        redisService.deleteValues(userInfo.get("token").toString());
+        authRedisService.deleteValues(userInfo.get("token").toString());
         SecurityContextHolder.clearContext();
 
     }
