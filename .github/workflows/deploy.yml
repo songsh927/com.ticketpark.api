@@ -37,6 +37,6 @@ jobs:
           key: ${{ secrets.EC2_SECRET }}
           script: |
             cd /home/ubuntu/app/ticketpark
-            mv *.jar app.jar
+            mv *-SNAPSHOT.jar app.jar
             sudo systemctl restart ticketpark.service
 
