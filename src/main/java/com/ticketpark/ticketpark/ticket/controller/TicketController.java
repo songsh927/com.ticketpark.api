@@ -38,7 +38,7 @@ public class TicketController {
     }
 
     @PostMapping("/waiting/{idx}")
-    public ResponseEntity<?> joinQueue(@RequestAttribute("user") Map<String, Object> userInfo, @PathVariable(value = "idx") String idx) {
+    public ResponseEntity joinQueue(@RequestAttribute("user") Map<String, Object> userInfo, @PathVariable(value = "idx") String idx) {
         String userId = (String) userInfo.get("memberId");
         Long rank = queueService.enterQueue(userId, idx);
         return new ResponseEntity(DefaultRes.res(true, "대기열 진입", rank+1), HttpStatus.OK);
@@ -46,7 +46,7 @@ public class TicketController {
     }
 
     @GetMapping("/waiting/{idx}")
-    public ResponseEntity<?> getStatus(@RequestAttribute("user") Map<String, Object> userInfo, @PathVariable(value = "idx") String idx) {
+    public ResponseEntity getStatus(@RequestAttribute("user") Map<String, Object> userInfo, @PathVariable(value = "idx") String idx) {
         String userId = (String) userInfo.get("memberId");
         if (queueService.isAllowed(userId, idx)) {
             return new ResponseEntity(DefaultRes.res(true, ""), HttpStatus.FOUND);

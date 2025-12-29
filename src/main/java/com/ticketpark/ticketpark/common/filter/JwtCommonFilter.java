@@ -30,36 +30,46 @@ public class JwtCommonFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+//        String path = request.getRequestURI();
 
-        String token = request.getHeader("x-access-token");
-        String checkToken = (String) authRedisService.getValues(token);
-
-        if(token == null || checkToken == null){
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            String errorMessage = "{\"success\": false, \"message\": \"유효하지 않거나 만료된 토큰입니다.\", \"data\": null}";
-            response.getWriter().write(errorMessage);
-            return;
-        }
-
-
-        if (jwtProvider.validateToken(token)) {
-
-            Claims extractedTokenInfo = jwtProvider.extractAllClaims(token);
-
-            UserDetails userDetails = memberSecurityService.loadUserByUsername((String) extractedTokenInfo.get("memberId"));
-            Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
+        String ua = request.getHeader("User-Agent");
+        if(ua.contains("Grafana")){
             Map<String, String> member = new HashMap<>();
-
-            member.put("memberIdx", extractedTokenInfo.get("memberIdx").toString());
-            member.put("memberId", (String) extractedTokenInfo.get("memberId"));
-            member.put("token", token);
+            member.put("memberIdx", request.getHeader("memberIdx"));
+            member.put("memberId", request.getHeader("memberId"));
 
             request.setAttribute("user", member);
+        } else {
+            String token = request.getHeader("x-access-token");
+            String checkToken = (String) authRedisService.getValues(token);
+
+            if(token == null || checkToken == null){
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                String errorMessage = "{\"success\": false, \"message\": \"유효하지 않거나 만료된 토큰입니다.\", \"data\": null}";
+                response.getWriter().write(errorMessage);
+                return;
+            }
+
+            if (jwtProvider.validateToken(token)) {
+
+                Claims extractedTokenInfo = jwtProvider.extractAllClaims(token);
+
+                UserDetails userDetails = memberSecurityService.loadUserByUsername((String) extractedTokenInfo.get("memberId"));
+                Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                Map<String, String> member = new HashMap<>();
+
+                member.put("memberIdx", extractedTokenInfo.get("memberIdx").toString());
+                member.put("memberId", (String) extractedTokenInfo.get("memberId"));
+                member.put("token", token);
+
+                request.setAttribute("user", member);
+            }
         }
+
+
 
 
         chain.doFilter(request, response);
