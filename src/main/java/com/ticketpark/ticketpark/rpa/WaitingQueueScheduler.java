@@ -24,7 +24,7 @@ public class WaitingQueueScheduler {
 
         for (String key : waitingKeys) {
             String eventId = key.split(":")[2];
-            queueService.allowUsers(eventId, 80);
+            queueService.allowUsers(eventId, 60);
         }
     }
 }
