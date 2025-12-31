@@ -1,134 +1,283 @@
-import http from 'k6/http';
-import { check, sleep } from 'k6';
+import http from "k6/http";
+import { check, sleep } from "k6";
+import { Trend, Rate, Counter } from "k6/metrics";
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
-// 토큰(=계정) 개수는 VU 이상 권장
-const TOKEN_COUNT = Number(__ENV.TOKEN_COUNT || 9000);
-const USER_PREFIX = __ENV.USER_PREFIX || 'testuser';
-const PASSWORD = __ENV.PASSWORD || 'qwer1234';
+// ===== Metrics =====
+const listLatency = new Trend("list_latency");
+const detailLatency = new Trend("detail_latency");
 
-// 동시성 테스트 모드: contended | distributed | mixed
-const MODE = __ENV.MODE || 'contended';
+const waitingEnterLatency = new Trend("waiting_enter_latency"); // POST waiting
+const waitingPollLatency = new Trend("waiting_poll_latency");   // GET waiting
+const reserveLatency = new Trend("reserve_latency");            // POST reserve
 
-// 경쟁 모드에서 모든 유저가 노릴 ticketId
-const HOT_TICKET_ID = Number(__ENV.HOT_TICKET_ID || 1);
+const bizReserveSuccess = new Rate("biz_reserve_success");      // 2xx
+const bizReserveRejected = new Rate("biz_reserve_rejected");    // 400/409/410 등
+const bizReserveThrottled = new Rate("biz_reserve_throttled");  // 429/503 등
+const queueAdmittedRate = new Rate("queue_admitted");           // waiting GET에서 302 받았는지
+const queueTimeoutRate = new Rate("queue_timeout");             // 폴링 타임아웃으로 포기했는지
 
-// 분산 모드에서 사용할 ticketId 범위 (예: 1~1000)
-const TICKET_ID_START = Number(__ENV.TICKET_ID_START || 1);
-const TICKET_ID_END = Number(__ENV.TICKET_ID_END || 200);
+const waitingEnterAttempts = new Counter("waiting_enter_attempts");
+const waitingPollAttempts = new Counter("waiting_poll_attempts");
+const reserveAttempts = new Counter("reserve_attempts");
 
-// 요청 간 텀(실서비스 느낌을 위해 약간 랜덤도 가능)
-const SLEEP_SEC = Number(__ENV.SLEEP_SEC || 0.1);
+// ===== Config =====
+function cfg() {
+  return {
+    // baseUrl: __ENV.BASE_URL || "http://localhost:8080",
+    ticketId: __ENV.TICKET_ID || "1",
 
-// 예매 성공/실패를 status 코드로 구분하는 경우가 많아서 체크를 넓게 잡음
-// (서버가 200/201/204 등을 쓸 수도 있고, 실패는 409/400/429/500 등이 나올 수 있음)
-function isSuccessStatus(s) {
-  return s === 200 || s === 201 || s === 204;
+    listPath: "/ticket/list",
+    detailPath: "/ticket/detail",
+    reservePath: "/ticket/reserve",
+    waitingPath: "/ticket/waiting",
+
+    // Simulation knobs
+    warmUsers: Number(__ENV.WARM_USERS || 50),
+    openUsers: Number(__ENV.OPEN_USERS || 300),
+    openSeconds: Number(__ENV.OPEN_SECONDS || 20),
+    tailSeconds: Number(__ENV.TAIL_SECONDS || 120),
+
+    // Queue polling behavior
+    pollIntervalSec: Number(__ENV.POLL_INTERVAL_SEC || 3),
+    maxPollSeconds: Number(__ENV.MAX_POLL_SECONDS || 240),
+  };
 }
 
+function jitterSleepMs(ms) {
+  const jitter = 0.85 + Math.random() * 0.3;
+  sleep((ms * jitter) / 1000);
+}
+
+// ===== VU =====
+function memberHeaders() {
+    const memberIdx = __VU;
+    const memberId = `testuser${memberIdx}`;
+
+    return {
+      memberIdx: String(memberIdx),
+      memberId: memberId,
+    };
+  }
+
+// ===== Requests =====
+function requestPublic(method, url, body, tagName, timeout = "5s") {
+  const params = {
+    headers: { "Content-Type": "application/json" },
+    tags: { name: tagName },
+    timeout,
+    redirects: 0,
+  };
+  if (method === "GET") return http.get(url, params);
+  if (method === "POST") return http.post(url, body || "{}", params);
+  throw new Error(`Unsupported method: ${method}`);
+}
+
+function requestAuthed(method, url, body, tagName, timeout = "5s", redirects = 0) {
+  const c = cfg();
+  const params = {
+    headers: {
+      "Content-Type": "application/json",
+      ...memberHeaders(),
+    },
+    tags: { name: tagName },
+    timeout,
+    redirects,
+  };
+  if (method === "GET") return http.get(url, params);
+  if (method === "POST") return http.post(url, body || "{}", params);
+  throw new Error(`Unsupported method: ${method}`);
+}
+
+// ===== Business calls =====
+function callList() {
+  const c = cfg();
+  const res = requestPublic("GET", `${c.baseUrl}${c.listPath}`, null, "ticket_list", "5s");
+  listLatency.add(res.timings.duration);
+  check(res, { "list <500": (r) => r.status < 500 });
+  return res;
+}
+
+function callDetail(ticketId) {
+  const c = cfg();
+  const res = requestPublic(
+    "GET",
+    `${c.baseUrl}${c.detailPath}/${ticketId}`,
+    null,
+    "ticket_detail",
+    "5s"
+  );
+  detailLatency.add(res.timings.duration);
+  check(res, { "detail <500": (r) => r.status < 500 });
+  return res;
+}
+
+function enterQueue(ticketId) {
+  const c = cfg();
+  const url = `${c.baseUrl}${c.waitingPath}/${ticketId}`;
+
+  const res = requestAuthed("POST", url, JSON.stringify({}), "waiting_enter", "5s", 0);
+  waitingEnterAttempts.add(1);
+  waitingEnterLatency.add(res.timings.duration);
+
+  // 보통 2xx면 대기열 진입 성공. 409/429 등 정책이면 여기서 분기 가능
+  check(res, { "waiting enter <500": (r) => r.status < 500 });
+
+  console.log(res)
+
+  return res;
+}
+
+function pollQueue(ticketId) {
+  const c = cfg();
+  const url = `${c.baseUrl}${c.waitingPath}/${ticketId}`;
+
+  //redirects=0 으로 302를 그대로 받기
+  const res = requestAuthed("GET", url, null, "waiting_poll", "5s", 0);
+  waitingPollAttempts.add(1);
+  waitingPollLatency.add(res.timings.duration);
+
+  // 302가 아니어도 서버가 살아있는지만 체크
+  check(res, { "waiting poll <500": (r) => r.status < 500 });
+
+  return res;
+}
+
+function classifyReserve(status) {
+  if (status >= 200 && status < 300) return "SUCCESS";
+  if (status === 409 || status === 410 || status === 400) return "REJECTED";
+  if (status === 429 || status === 503) return "THROTTLED";
+  return "ERROR";
+}
+
+function doReserve(ticketId) {
+  const c = cfg();
+  const url = `${c.baseUrl}${c.reservePath}/${ticketId}`;
+
+  const res = requestAuthed("POST", url, JSON.stringify({}), "ticket_reserve", "5s", 0);
+  reserveAttempts.add(1);
+  reserveLatency.add(res.timings.duration);
+
+  const kind = classifyReserve(res.status);
+  bizReserveSuccess.add(kind === "SUCCESS");
+  bizReserveRejected.add(kind === "REJECTED");
+  bizReserveThrottled.add(kind === "THROTTLED");
+
+  check(res, { "reserve not 5xx (except 503)": (r) => r.status < 500 || r.status === 503 });
+
+  return { res, kind };
+}
+
+// ===== Queue flow: enter -> poll every 2s -> on 302 reserve =====
+function queueThenReserve(ticketId) {
+  const c = cfg();
+
+  // 1) 대기열 진입
+  const enterRes = enterQueue(ticketId);
+
+  // 대기열 진입이 실패(예: 401, 403)인 경우는 바로 종료
+  if (enterRes.status >= 500) return;
+
+  // 2) 폴링
+  const deadline = Date.now() + c.maxPollSeconds * 1000;
+
+  while (Date.now() < deadline) {
+    const res = pollQueue(ticketId);
+
+    if (res.status === 302) {
+      queueAdmittedRate.add(true);
+
+      // 3) 302면 reserve 시도
+      doReserve(ticketId);
+      return;
+    }
+
+    // 302가 아니면 2초 대기 후 다시 폴링
+    sleep(c.pollIntervalSec);
+  }
+
+  // 제한 시간 내 302 못 받음 (대기열 장기체류)
+  queueAdmittedRate.add(false);
+  queueTimeoutRate.add(true);
+}
+
+// ===== Scenarios =====
 export const options = {
   scenarios: {
-    reserve: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: '5s', target: 50 },
-        { duration: '20s', target: 50 },
-        { duration: '5s', target: 0 },
-      ],
-      gracefulRampDown: '5s',
+    // 오픈 전: list/detail 새로고침 (public)
+    warmup_browsing: {
+      executor: "constant-vus",
+      vus: Number(__ENV.WARM_USERS || 50),
+      duration: "2m",
+      exec: "browse_preopen",
+      startTime: "0s",
+    },
+
+    // 오픈 순간: 대기열 진입 + 폴링 + 302시 reserve
+    open_spike_queue: {
+      executor: "constant-vus",
+      vus: Number(__ENV.OPEN_USERS || 3000),
+      duration: `${Number(__ENV.OPEN_SECONDS || 60)}s`,
+      exec: "open_queue_flow",
+      startTime: "1m",
+    },
+
+    // 오픈 후 꼬리: detail 폴링 + (일부) 다시 대기열 시도
+    post_open_tail: {
+      executor: "constant-vus",
+      vus: 150,
+      duration: `${Number(__ENV.TAIL_SECONDS || 120)}s`,
+      exec: "post_open_behavior",
+      startTime: `2m`,
     },
   },
+
   thresholds: {
-    http_req_failed: ['rate<0.05'],        // 동시성 테스트는 실패(409 등)가 정상일 수 있어 실패율 기준 완화
-    http_req_duration: ['p(95)<800'],      // 락 경합 시 느려질 수 있어 기준 완화(원하면 조정)
+    waiting_enter_latency: ["p(95)<1200"],
+    waiting_poll_latency: ["p(95)<1200"],
+    reserve_latency: ["p(95)<1500"],
+
+    http_req_failed: ["rate<0.35"],
   },
-  setupTimeout: '10m'
+
+  summaryTrendStats: ["min", "med", "p(90)", "p(95)", "max"],
 };
 
-export function setup() {
-  const tokens = [];
+// ===== Scenario functions =====
+export function browse_preopen() {
+  const c = cfg();
 
-  for (let i = 1; i <= TOKEN_COUNT; i++) {
-    const id = `${USER_PREFIX}${i}`;
+  callList();
+  sleep(0.5 + Math.random() * 1.2);
 
-    const res = http.post(
-      `${BASE_URL}/member/login`,
-      JSON.stringify({ id, password: PASSWORD }),
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+  const loops = 3 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < loops; i++) {
+    callDetail(c.ticketId);
+    jitterSleepMs(500 + Math.random() * 1000);
+  }
+}
 
-    if (res.status !== 200) {
-      console.error(`[LOGIN FAIL] id=${id} status=${res.status} body=${res.body}`);
-      throw new Error(`Login failed for ${id}`);
+export function open_queue_flow() {
+  const c = cfg();
+  // 오픈 순간: 대기열 → 302면 예약
+  queueThenReserve(c.ticketId);
+
+  // 유저가 버튼 누르고 화면 보는 시간 느낌
+  sleep(0.2 + Math.random() * 0.6);
+}
+
+export function post_open_behavior() {
+  const c = cfg();
+  const end = Date.now() + c.tailSeconds * 1000;
+
+  while (Date.now() < end) {
+    callDetail(c.ticketId);
+
+    // 10%는 다시 대기열 진입 시도(취소표/새로고침 습관)
+    if (Math.random() < 0.10) {
+      queueThenReserve(c.ticketId);
     }
 
-    const parsed = res.json();
-    const token = parsed?.data?.accessToken;
-    if (!token) {
-      console.error(`[TOKEN MISSING] id=${id} parsed=${JSON.stringify(parsed)}`);
-      throw new Error(`No token for ${id}`);
-    }
-
-    tokens.push(token);
+    sleep(0.8 + Math.random() * 2.2);
   }
-
-  return { tokens };
-}
-
-// VU별 토큰 고정 매핑
-function pickToken(data) {
-  const idx = (__VU - 1) % data.tokens.length;
-  return data.tokens[idx];
-}
-
-// ticketId 선택 로직 (모드별)
-function pickTicketId() {
-  if (MODE === 'contended') {
-    // 모두 같은 티켓을 동시에 노림 (락/중복/재고 감소 검증용)
-    return HOT_TICKET_ID;
-  }
-
-  if (MODE === 'distributed') {
-    // 각 VU가 서로 다른 티켓을 주로 노림 (처리량 측정)
-    const span = Math.max(1, TICKET_ID_END - TICKET_ID_START + 1);
-    return TICKET_ID_START + ((__VU - 1) % span);
-  }
-
-  // mixed: 70%는 HOT(경쟁), 30%는 분산(현실 혼합)
-  // (확률은 원하는 대로 바꿔도 됨)
-  const r = Math.random();
-  if (r < 0.7) return HOT_TICKET_ID;
-
-  const span = Math.max(1, TICKET_ID_END - TICKET_ID_START + 1);
-  return TICKET_ID_START + (Math.floor(Math.random() * span));
-}
-
-export default function (data) {
-  const token = pickToken(data);
-  const ticketId = pickTicketId();
-
-  const headers = {
-    'x-access-token': token,
-  };
-
-  const url = `${BASE_URL}/ticket/reserve/${ticketId}`;
-  const res = http.post(url, null, { headers });
-
-  // ✅ 동시성 테스트에서는 "실패"도 정상 결과일 수 있어요.
-  // 예: 매진이면 409/400 등
-  // 그래서 체크는 두 단계로 나눠서 관측하기 좋게 함.
-  check(res, {
-    'reserve responded': (r) => r.status !== 0, // connection reset 등 네트워크 실패만 잡기
-  });
-
-  // 성공/경합 실패를 구분해서 로그/지표로 보고 싶으면 아래처럼
-  if (!isSuccessStatus(res.status) && res.status !== 409 && res.status !== 400) {
-    // 409(중복/매진), 400(비즈니스 실패) 등은 케이스에 따라 정상일 수 있음
-    // 진짜 이상한 에러만 찍기
-    // console.error(`[RESERVE ERROR] status=${res.status} body=${res.body}`);
-  }
-
-  sleep(SLEEP_SEC);
 }
