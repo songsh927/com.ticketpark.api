@@ -24,6 +24,7 @@ const reserveAttempts = new Counter("reserve_attempts");
 // ===== Config =====
 function cfg() {
   return {
+    baseUrl: __ENV.BASE_URL || "http://54.180.30.56/api",
     // baseUrl: __ENV.BASE_URL || "http://localhost:8080",
     ticketId: __ENV.TICKET_ID || "1",
 
@@ -39,21 +40,21 @@ function cfg() {
     tailSeconds: Number(__ENV.TAIL_SECONDS || 120),
 
     // Queue polling behavior
-    pollIntervalSec: Number(__ENV.POLL_INTERVAL_SEC || 3),
-    maxPollSeconds: Number(__ENV.MAX_POLL_SECONDS || 240),
+    pollIntervalSec: Number(__ENV.POLL_INTERVAL_SEC || 3), // ✅ 2초
+    maxPollSeconds: Number(__ENV.MAX_POLL_SECONDS || 240), // ✅ 최대 대기(기본 120초)
   };
 }
 
 function jitterSleepMs(ms) {
-  const jitter = 0.85 + Math.random() * 0.3;
+  const jitter = 0.85 + Math.random() * 0.3; // 약간만 흔들림
   sleep((ms * jitter) / 1000);
 }
 
-// ===== VU =====
+// ===== Token selection (VU 고정) =====
 function memberHeaders() {
-    const memberIdx = __VU;
-    const memberId = `testuser${memberIdx}`;
-
+    const memberIdx = __VU;                  // 1 ~ VU
+    const memberId = `testuser${memberIdx}`; // testuser1 ~ testuser100000
+  
     return {
       memberIdx: String(memberIdx),
       memberId: memberId,
@@ -66,7 +67,7 @@ function requestPublic(method, url, body, tagName, timeout = "5s") {
     headers: { "Content-Type": "application/json" },
     tags: { name: tagName },
     timeout,
-    redirects: 0,
+    redirects: 0, // 안전하게 기본값; public에서도 상관없음
   };
   if (method === "GET") return http.get(url, params);
   if (method === "POST") return http.post(url, body || "{}", params);
@@ -82,7 +83,7 @@ function requestAuthed(method, url, body, tagName, timeout = "5s", redirects = 0
     },
     tags: { name: tagName },
     timeout,
-    redirects,
+    redirects, // ✅ 302를 우리가 직접 감지해야 하므로 기본 0
   };
   if (method === "GET") return http.get(url, params);
   if (method === "POST") return http.post(url, body || "{}", params);
@@ -132,7 +133,7 @@ function pollQueue(ticketId) {
   const c = cfg();
   const url = `${c.baseUrl}${c.waitingPath}/${ticketId}`;
 
-  //redirects=0 으로 302를 그대로 받기
+  // ✅ redirects=0 으로 302를 그대로 받기
   const res = requestAuthed("GET", url, null, "waiting_poll", "5s", 0);
   waitingPollAttempts.add(1);
   waitingPollLatency.add(res.timings.duration);
@@ -205,21 +206,21 @@ function queueThenReserve(ticketId) {
 export const options = {
   scenarios: {
     // 오픈 전: list/detail 새로고침 (public)
-    warmup_browsing: {
-      executor: "constant-vus",
-      vus: Number(__ENV.WARM_USERS || 50),
-      duration: "2m",
-      exec: "browse_preopen",
-      startTime: "0s",
-    },
+    // warmup_browsing: {
+    //   executor: "constant-vus",
+    //   vus: Number(__ENV.WARM_USERS || 50),
+    //   duration: "2m",
+    //   exec: "browse_preopen",
+    //   startTime: "0s",
+    // },
 
     // 오픈 순간: 대기열 진입 + 폴링 + 302시 reserve
     open_spike_queue: {
       executor: "constant-vus",
-      vus: Number(__ENV.OPEN_USERS || 3000),
+      vus: Number(__ENV.OPEN_USERS || 10000),
       duration: `${Number(__ENV.OPEN_SECONDS || 60)}s`,
       exec: "open_queue_flow",
-      startTime: "1m",
+      startTime: "0s",
     },
 
     // 오픈 후 꼬리: detail 폴링 + (일부) 다시 대기열 시도
@@ -228,7 +229,7 @@ export const options = {
       vus: 150,
       duration: `${Number(__ENV.TAIL_SECONDS || 120)}s`,
       exec: "post_open_behavior",
-      startTime: `2m`,
+      startTime: `1m`,
     },
   },
 
@@ -237,6 +238,8 @@ export const options = {
     waiting_poll_latency: ["p(95)<1200"],
     reserve_latency: ["p(95)<1500"],
 
+    // 참고: http_req_failed는 302/4xx를 실패로 잡을 수 있어 의미가 애매할 수 있음
+    // 안정성만 보고 싶으면 완화하거나 제거 추천
     http_req_failed: ["rate<0.35"],
   },
 
