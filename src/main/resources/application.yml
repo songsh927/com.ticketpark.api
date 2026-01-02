@@ -40,3 +40,11 @@ jwt:
   # 토큰 만료 시간 (예: 1시간 = 3600000ms)
   access-expire-time: ${JWT_ACCESS_EXPIRE}
   refresh-expire-time: ${JWT_REFRESH_EXPIRE}
+
+server:
+  tomcat:
+    threads:
+      max: 400
+      min-spare: 50
+    accept-count: 1000
+    max-connections: 20000
