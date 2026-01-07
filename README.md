@@ -16,9 +16,11 @@
 
 #### DevOps
 ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white) ![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white) <img src="https://img.shields.io/badge/k6-7D64FF?style=for-the-badge&logo=k6&logoColor=white">   
+
+### 3. 시연영상  
+[![Video Label](http://img.youtube.com/vi/AUavSsak9_g/0.jpg)](https://youtu.be/AUavSsak9_g)  
   
-  
-### 3. 아키텍쳐  
+### 4. 아키텍쳐  
   
 ```bash
 src
